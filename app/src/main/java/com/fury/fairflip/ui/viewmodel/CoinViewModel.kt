@@ -12,18 +12,14 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.abs
 import kotlin.random.Random
 
 class CoinViewModel(application: Application) : AndroidViewModel(application), SensorEventListener {
 
-    // --- SENSORS & HAPTICS SYSTEM ---
     private val sensorManager = application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-    // Vibrator (Supports old and new Android versions)
     private val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val manager = application.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
         manager.defaultVibrator
@@ -33,66 +29,73 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
     }
 
     // --- STATE VARIABLES ---
-
-    // 1. Parallax Offset (For the "Floating" effect)
-    // We emit X and Y coordinates to move the coin slightly
     private val _coinOffset = MutableStateFlow(Pair(0f, 0f))
     val coinOffset = _coinOffset.asStateFlow()
 
-    // 2. Cheat Logic
-    private var isStealthModeOn = false // If true, cheats are disabled (Safe mode)
-    private var currentCheatState = CheatState.RANDOM // The current rigged outcome
-    private var lastVibratedState = CheatState.RANDOM // To prevent constant buzzing
+    // Smoothing Variables (Current Position)
+    private var smoothedX = 0f
+    private var smoothedY = 0f
 
-    enum class CheatState {
-        HEADS, // Rigged for Heads
-        TAILS, // Rigged for Tails
-        RANDOM // Fair flip
-    }
+    // CONFIGURATION
+    // 0.1f = Very Smooth/Slow (Heavy feel). 0.5f = Snappy.
+    private val SMOOTHING_FACTOR = 0.5f
+    // Reduced from 3f to 2f for less aggressive movement
+    private val SENSITIVITY_MULTIPLIER = 4.0f
 
-    // --- INIT ---
+    private var isStealthModeOn = false
+    private var currentCheatState = CheatState.RANDOM
+    private var lastVibratedState = CheatState.RANDOM
+
+    enum class CheatState { HEADS, TAILS, RANDOM }
+
     init {
-        // Start listening to sensors immediately
         accelerometer?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
     }
 
-    // --- SENSOR LOGIC ---
     override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
 
         if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            val x = event.values[0] // Tilt Left/Right
-            val y = event.values[1] // Tilt Up/Down
+            val rawX = event.values[0]
+            val rawY = event.values[1]
 
-            // A. PARALLAX EFFECT (Floating Coin)
-            // We invert values so if you tilt left, coin slides left (gravity)
-            // Multiplier determines how "heavy" the coin feels.
-            val parallaxX = -x * 3f
-            val parallaxY = y * 3f
-            _coinOffset.value = Pair(parallaxX, parallaxY)
+            // --- 1. SMOOTHING ALGORITHM (Low Pass Filter) ---
+            // Target is where the sensor WANTS to be.
+            // We only move a small percentage (SMOOTHING_FACTOR) towards it per frame.
 
-            // B. CHEAT DETECTION
+            // Invert rawX so tilting left slides left
+            val targetX = -rawX * SENSITIVITY_MULTIPLIER
+            val targetY = rawY * SENSITIVITY_MULTIPLIER
+
+            // Formula: New = Old + (Target - Old) * Alpha
+            smoothedX += (targetX - smoothedX) * SMOOTHING_FACTOR
+            smoothedY += (targetY - smoothedY) * SMOOTHING_FACTOR
+
+            // Emit the buttery smooth values
+            _coinOffset.value = Pair(smoothedX, smoothedY)
+
+            // --- 2. CHEAT DETECTION (Use Raw Data for accuracy) ---
+            // We use raw data for cheats because we want instant trigger response,
+            // even if the visual movement is slow/smooth.
             if (!isStealthModeOn) {
-                detectCheatTilt(x)
+                detectCheatTilt(rawX)
             }
         }
     }
 
     private fun detectCheatTilt(xValue: Float) {
-        // Threshold: How much you need to tilt to trigger the cheat
-        val tiltThreshold = 3.0f
+        val tiltThreshold = 5.0f
 
         val newState = when {
-            xValue > tiltThreshold -> CheatState.HEADS // Tilted Left (usually positive X on some devices, verify!)
-            xValue < -tiltThreshold -> CheatState.TAILS // Tilted Right
-            else -> CheatState.RANDOM // Flat(ish)
+            xValue > tiltThreshold -> CheatState.HEADS
+            xValue < -tiltThreshold -> CheatState.TAILS
+            else -> CheatState.RANDOM
         }
 
         if (newState != currentCheatState) {
             currentCheatState = newState
-            // Haptic Feedback to confirm cheat selection
             if (newState != lastVibratedState) {
                 triggerHaptic(newState)
                 lastVibratedState = newState
@@ -100,7 +103,6 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
         }
     }
 
-    // --- HAPTIC FEEDBACK ENGINE ---
     private fun triggerHaptic(state: CheatState) {
         if (!vibrator.hasVibrator()) return
 
@@ -110,18 +112,12 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
                     VibrationEffect.createOneShot(100, 255)
                 } else {
                     @Suppress("DEPRECATION")
-                    VibrationEffect.createOneShot(100, 255) // Old API doesn't support amplitude, just time
+                    VibrationEffect.createOneShot(100, 255)
                 }
             }
             CheatState.TAILS -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // Timings: [Start Delay, Vibrate 150ms, Pause 50ms, Vibrate 150ms]
-                    // Amplitudes: [0, 255, 0, 255] (Max power)
-                    VibrationEffect.createWaveform(
-                        longArrayOf(0, 150, 50, 150),
-                        intArrayOf(0, 255, 0, 255),
-                        -1 // No Repeat
-                    )
+                    VibrationEffect.createWaveform(longArrayOf(0, 150, 50, 150), intArrayOf(0, 255, 0, 255), -1)
                 } else {
                     @Suppress("DEPRECATION")
                     VibrationEffect.createWaveform(longArrayOf(0, 150, 50, 150), -1)
@@ -129,15 +125,11 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
             }
             CheatState.RANDOM -> null
         }
-
         effect?.let { vibrator.vibrate(it) }
     }
 
-    // --- PUBLIC ACTIONS ---
-
     fun toggleStealthMode(): String {
         isStealthModeOn = !isStealthModeOn
-        // Reset cheat state when entering stealth
         if (isStealthModeOn) {
             currentCheatState = CheatState.RANDOM
             lastVibratedState = CheatState.RANDOM
@@ -147,13 +139,12 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
 
     fun getFlipResult(currentHeadsState: Boolean): Boolean {
         return when (currentCheatState) {
-            CheatState.HEADS -> true // Force Heads
-            CheatState.TAILS -> false // Force Tails
+            CheatState.HEADS -> true
+            CheatState.TAILS -> false
             CheatState.RANDOM -> Random.nextBoolean()
         }
     }
 
-    // Cleanup
     override fun onCleared() {
         super.onCleared()
         sensorManager.unregisterListener(this)
