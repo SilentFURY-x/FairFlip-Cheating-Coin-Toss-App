@@ -38,7 +38,7 @@ fun FlipButton(
             .height(65.dp)
     ) {
         Text(
-            text = "FLIP COIN",
+            text = "FLIP",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp

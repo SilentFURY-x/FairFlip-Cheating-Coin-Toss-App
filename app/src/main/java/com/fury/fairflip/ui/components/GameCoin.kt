@@ -1,44 +1,86 @@
 package com.fury.fairflip.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.fury.fairflip.R
+import com.fury.fairflip.ui.theme.RoyalGoldDark
 
 @Composable
 fun GameCoin(
-    isHeads: Boolean,
-    rotationY: Float, // We will control this for the 3D animation
+    rotationY: Float,
     modifier: Modifier = Modifier
 ) {
+    // Container: 380dp (Enough space so the 190dp radius glow isn't clipped)
     Box(
-        modifier = modifier
-            .size(280.dp) // Large hero size
-            .graphicsLayer {
-                // This is the magic 3D rotation logic
-                this.rotationY = rotationY
-                cameraDistance = 12f * density // Adds depth perspective
-            },
+        modifier = modifier.size(380.dp),
         contentAlignment = Alignment.Center
     ) {
-        // We render the image based on the rotation angle to simulate 2 sides
-        // If rotation is between 90 and 270, we are looking at the "back"
-        val showHeads = if (rotationY % 360 in 90f..270f) !isHeads else isHeads
+        // --- LAYER 1: THE SOFT BLENDED GLOW ---
+        // Alpha reduced to 0.5f for maximum softness against dark bg
+        Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.5f }) {
+            val shadowCenter = center.copy(y = center.y + 15f)
+            // Define the exact radius where the glow hits total transparency.
+            // Coin radius is 150dp. 190dp gives a tight, soft fade.
+            val glowRadiusPx = 190.dp.toPx()
 
-        Image(
-            painter = painterResource(id = if (showHeads) R.drawable.coin_heads else R.drawable.coin_tails),
-            contentDescription = "Coin Face",
+            val softBrush = Brush.radialGradient(
+                colors = listOf(RoyalGoldDark, Color.Transparent),
+                center = shadowCenter,
+                radius = glowRadiusPx // Gradient ends exactly here
+            )
+
+            drawCircle(
+                brush = softBrush,
+                radius = glowRadiusPx, // Drawing stops exactly where gradient ends. No hard edge.
+                center = shadowCenter
+            )
+        }
+
+        // --- LAYER 2: THE 3D COIN OBJECT (300dp) ---
+        Box(
             modifier = Modifier
-                .matchParentSize()
-                .shadow(elevation = 25.dp, shape = CircleShape, spotColor = com.fury.fairflip.ui.theme.RoyalGold)
-        )
+                .size(300.dp)
+                .graphicsLayer {
+                    this.rotationY = rotationY
+                    cameraDistance = 16f * density
+                }
+        ) {
+            val normalized = (rotationY % 360f + 360f) % 360f
+            val isBackVisible = normalized in 90f..270f
+
+            // --- HEADS SIDE ---
+            Image(
+                painter = painterResource(id = R.drawable.coin_heads),
+                contentDescription = "Heads",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = if (isBackVisible) 0f else 1f
+                    }
+            )
+
+            // --- TAILS SIDE ---
+            Image(
+                painter = painterResource(id = R.drawable.coin_tails),
+                contentDescription = "Tails",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        this.rotationY = 180f
+                        alpha = if (isBackVisible) 1f else 0f
+                    }
+            )
+        }
     }
 }

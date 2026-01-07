@@ -1,5 +1,8 @@
 package com.fury.fairflip.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -10,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fury.fairflip.ui.components.FlipButton
@@ -18,92 +22,138 @@ import com.fury.fairflip.ui.theme.MysticBlack
 import com.fury.fairflip.ui.theme.RoyalGold
 import com.fury.fairflip.ui.theme.SurfaceGrey
 import com.fury.fairflip.ui.theme.TextGrey
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen() {
-    // These are temporary states just to test the UI looks good
-    // We will replace these with ViewModel state in Phase 3
-    var coinRotation by remember { mutableStateOf(0f) }
-    var statusText by remember { mutableStateOf("Ready to Flip") }
+    // --- STATE ---
+    var coinStateIsHeads by remember { mutableStateOf(true) }
+    var targetRotation by remember { mutableFloatStateOf(0f) }
+    var statusText by remember { mutableStateOf("TAP TO FLIP") }
+    var isFlipping by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
+    // --- ANIMATION ENGINE ---
+    val currentRotation by animateFloatAsState(
+        targetValue = targetRotation,
+        animationSpec = tween(
+            durationMillis = 1500,
+            easing = FastOutSlowInEasing
+        ),
+        label = "CoinSpin"
+    )
+
+    // --- UI ROOT ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                // A subtle radial gradient for a "spotlight" effect
                 brush = Brush.radialGradient(
-                    colors = listOf(SurfaceGrey, MysticBlack),
-                    radius = 1200f
+                    colors = listOf(SurfaceGrey, MysticBlack.copy(alpha = 0.95f)),
+                    radius = 1400f
                 )
             )
     ) {
-        // --- 1. STEALTH HEADER (Hidden Button) ---
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = {
-                            statusText = "Stealth Mode Toggled" // Test feedback
-                        }
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // --- HEADER ---
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = { statusText = "/// STEALTH MODE ///" }
+                        )
+                    },
+                // CHANGED: Moved Alignment to TopCenter to push text up
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    // CHANGED: Added specific top padding to position it exactly where you want
+                    modifier = Modifier.padding(top = 50.dp)
+                ) {
+                    Text(
+                        text = "FAIR FLIP", // CHANGED: Name Updated
+                        color = RoyalGold,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 4.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "PRO EDITION",
+                        color = TextGrey,
+                        fontSize = 10.sp,
+                        letterSpacing = 3.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                .align(Alignment.TopCenter)
-        )
+            }
 
-        // --- 2. TITLE ---
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "FAIR FLIP",
-                color = RoyalGold,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 3.sp
-            )
-            Text(
-                text = "PRO EDITION",
-                color = TextGrey,
-                fontSize = 12.sp,
-                letterSpacing = 4.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            // --- HERO COIN ---
+            Box(
+                modifier = Modifier.weight(2f),
+                contentAlignment = Alignment.Center
+            ) {
+                GameCoin(rotationY = currentRotation)
+            }
 
-        // --- 3. THE COIN (CENTER) ---
-        GameCoin(
-            isHeads = true,
-            rotationY = coinRotation,
-            modifier = Modifier.align(Alignment.Center)
-        )
+            // --- CONTROLS ---
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(bottom = 50.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                Text(
+                    text = statusText,
+                    color = if (isFlipping) RoyalGold else TextGrey,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
-        // --- 4. CONTROLS (BOTTOM) ---
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = statusText,
-                color = TextGrey,
-                fontSize = 16.sp,
-                modifier = Modifier.padding(bottom = 30.dp)
-            )
+                FlipButton(
+                    isEnabled = !isFlipping,
+                    onClick = {
+                        if (isFlipping) return@FlipButton
+                        isFlipping = true
+                        statusText = "FLIPPING..."
 
-            FlipButton(
-                isEnabled = true,
-                onClick = {
-                    statusText = "Flipping..."
-                    // Test rotation
-                    coinRotation += 180f
-                }
-            )
+                        // 1. DECIDE RESULT
+                        val nextResultIsHeads = !coinStateIsHeads
+
+                        // 2. CALCULATE MATH
+                        val minSpins = 1800f
+                        val current = targetRotation
+                        val remainder = current % 360f
+                        val targetBase = current + minSpins - remainder
+
+                        targetRotation = if (nextResultIsHeads) {
+                            targetBase + 360f
+                        } else {
+                            targetBase + 180f
+                        }
+
+                        // 3. UPDATE STATE
+                        scope.launch {
+                            delay(1500)
+                            coinStateIsHeads = nextResultIsHeads
+                            statusText = if (coinStateIsHeads) "HEADS" else "TAILS"
+                            isFlipping = false
+                        }
+                    }
+                )
+            }
         }
     }
 }
