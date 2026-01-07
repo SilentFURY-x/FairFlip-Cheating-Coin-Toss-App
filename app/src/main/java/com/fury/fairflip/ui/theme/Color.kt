@@ -2,10 +2,11 @@ package com.fury.fairflip.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// The Premium Palette
+val MysticBlack = Color(0xFF0F0F0F)       // Deepest Black
+val SurfaceGrey = Color(0xFF1C1C1E)       // Slightly lighter for cards/buttons
+val RoyalGold = Color(0xFFFFD700)         // The Coin Gold
+val RoyalGoldDark = Color(0xFFC5A000)     // Shadow Gold
+val TextWhite = Color(0xFFF5F5F5)
+val TextGrey = Color(0xFF888888)
+val CheatRed = Color(0xFFFF4444)          // Debugging/Hidden indicator (optional)
