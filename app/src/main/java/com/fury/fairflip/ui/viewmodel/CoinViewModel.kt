@@ -145,8 +145,7 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
         return when (currentCheatState) {
             CheatState.HEADS -> true // Force Heads
             CheatState.TAILS -> false // Force Tails
-            CheatState.RANDOM -> !currentHeadsState // Standard Toggle (Fair)
-            // Or true random: Random.nextBoolean()
+            CheatState.RANDOM -> Random.nextBoolean()
         }
     }
 
