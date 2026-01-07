@@ -106,24 +106,28 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
 
         val effect = when (state) {
             CheatState.HEADS -> {
-                // Light Tick (1 short pulse)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE)
+                    VibrationEffect.createOneShot(100, 255)
                 } else {
                     @Suppress("DEPRECATION")
-                    VibrationEffect.createOneShot(50, 100)
+                    VibrationEffect.createOneShot(100, 255) // Old API doesn't support amplitude, just time
                 }
             }
             CheatState.TAILS -> {
-                // Heavy Double Tick
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    VibrationEffect.createWaveform(longArrayOf(0, 70, 50, 70), -1)
+                    // Timings: [Start Delay, Vibrate 150ms, Pause 50ms, Vibrate 150ms]
+                    // Amplitudes: [0, 255, 0, 255] (Max power)
+                    VibrationEffect.createWaveform(
+                        longArrayOf(0, 150, 50, 150),
+                        intArrayOf(0, 255, 0, 255),
+                        -1 // No Repeat
+                    )
                 } else {
                     @Suppress("DEPRECATION")
-                    VibrationEffect.createWaveform(longArrayOf(0, 70, 50, 70), -1)
+                    VibrationEffect.createWaveform(longArrayOf(0, 150, 50, 150), -1)
                 }
             }
-            CheatState.RANDOM -> null // No vibration when returning to flat
+            CheatState.RANDOM -> null
         }
 
         effect?.let { vibrator.vibrate(it) }
