@@ -12,10 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,11 +26,9 @@ import com.fury.fairflip.ui.theme.TextGrey
 import com.fury.fairflip.ui.viewmodel.CoinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @Composable
 fun MainScreen(
-    // Inject ViewModel
     viewModel: CoinViewModel = viewModel()
 ) {
     // --- STATE ---
@@ -42,7 +38,7 @@ fun MainScreen(
     var isFlipping by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Observe Parallax (Floating Effect)
+    // Observe Parallax Data
     val parallaxOffset by viewModel.coinOffset.collectAsState()
 
     // --- ANIMATION ENGINE ---
@@ -72,7 +68,7 @@ fun MainScreen(
                 .systemBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- HEADER (Stealth Trigger) ---
+            // --- HEADER ---
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -80,17 +76,11 @@ fun MainScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
-                                // 1. Get the secret message
-                                val secretMessage = viewModel.toggleStealthMode()
-                                statusText = secretMessage
-
-                                // 2. Schedule it to disappear
+                                val msg = viewModel.toggleStealthMode()
+                                statusText = msg
                                 scope.launch {
-                                    delay(1500) // Wait 2 seconds
-
-                                    // 3. Safety Check: Only reset if the user hasn't started flipping
-                                    // (We don't want to overwrite "FLIPPING..." if they tapped the button)
-                                    if (!isFlipping && statusText == secretMessage) {
+                                    delay(2000)
+                                    if (!isFlipping && statusText == msg) {
                                         statusText = "TAP TO FLIP"
                                     }
                                 }
@@ -121,20 +111,18 @@ fun MainScreen(
                 }
             }
 
-            // --- HERO COIN (With Parallax!) ---
+            // --- HERO COIN ---
+            // Note: We removed the .offset modifier from THIS Box.
             Box(
-                modifier = Modifier
-                    .weight(2f)
-                    .offset {
-                        // Apply the floating offset here!
-                        IntOffset(
-                            x = parallaxOffset.first.dp.roundToPx(),
-                            y = parallaxOffset.second.dp.roundToPx()
-                        )
-                    },
+                modifier = Modifier.weight(2f),
                 contentAlignment = Alignment.Center
             ) {
-                GameCoin(rotationY = currentRotation)
+                GameCoin(
+                    rotationY = currentRotation,
+                    // Pass the offset logic INTO the component
+                    offsetX = parallaxOffset.first.dp,
+                    offsetY = parallaxOffset.second.dp
+                )
             }
 
             // --- CONTROLS ---
@@ -163,11 +151,8 @@ fun MainScreen(
                         isFlipping = true
                         statusText = "FLIPPING..."
 
-                        // 1. ASK THE BRAIN FOR THE RESULT
-                        // The ViewModel checks the tilt and decides the winner
                         val nextResultIsHeads = viewModel.getFlipResult(coinStateIsHeads)
 
-                        // 2. CALCULATE MATH (Same as before)
                         val minSpins = 1800f
                         val current = targetRotation
                         val remainder = current % 360f
@@ -179,7 +164,6 @@ fun MainScreen(
                             targetBase + 180f
                         }
 
-                        // 3. UPDATE STATE
                         scope.launch {
                             delay(1500)
                             coinStateIsHeads = nextResultIsHeads

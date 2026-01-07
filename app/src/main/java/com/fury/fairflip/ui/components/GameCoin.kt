@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fury.fairflip.R
 import com.fury.fairflip.ui.theme.RoyalGoldDark
@@ -19,19 +21,19 @@ import com.fury.fairflip.ui.theme.RoyalGoldDark
 @Composable
 fun GameCoin(
     rotationY: Float,
+    offsetX: Dp, // New Parameter: Parallax X
+    offsetY: Dp, // New Parameter: Parallax Y
     modifier: Modifier = Modifier
 ) {
-    // ROOT CONTAINER: Reduced to 360dp (Tight fit for the new smaller glow)
+    // ROOT CONTAINER: Static 360dp
     Box(
         modifier = modifier.size(360.dp),
         contentAlignment = Alignment.Center
     ) {
-        // --- LAYER 1: THE TIGHT SOFT GLOW ---
+        // --- LAYER 1: THE GLOW (STATIC) ---
+        // This does NOT have the offset modifier, so it stays locked in place.
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.5f }) {
             val shadowCenter = center.copy()
-
-            // TARGET RADIUS: 175dp
-            // Coin Radius is 150dp. This leaves exactly 25dp of visible glow.
             val glowRadiusPx = 175.dp.toPx()
 
             val softBrush = Brush.radialGradient(
@@ -47,9 +49,11 @@ fun GameCoin(
             )
         }
 
-        // --- LAYER 2: THE 3D COIN OBJECT (300dp) ---
+        // --- LAYER 2: THE 3D COIN OBJECT (MOVING) ---
+        // We apply the parallax offset HERE.
         Box(
             modifier = Modifier
+                .offset(x = offsetX, y = offsetY) // <--- THE MAGIC LINE
                 .size(300.dp)
                 .graphicsLayer {
                     this.rotationY = rotationY
