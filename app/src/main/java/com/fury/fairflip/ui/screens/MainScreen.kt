@@ -80,8 +80,20 @@ fun MainScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
-                                // Call ViewModel Logic
-                                statusText = viewModel.toggleStealthMode()
+                                // 1. Get the secret message
+                                val secretMessage = viewModel.toggleStealthMode()
+                                statusText = secretMessage
+
+                                // 2. Schedule it to disappear
+                                scope.launch {
+                                    delay(1500) // Wait 2 seconds
+
+                                    // 3. Safety Check: Only reset if the user hasn't started flipping
+                                    // (We don't want to overwrite "FLIPPING..." if they tapped the button)
+                                    if (!isFlipping && statusText == secretMessage) {
+                                        statusText = "TAP TO FLIP"
+                                    }
+                                }
                             }
                         )
                     },
