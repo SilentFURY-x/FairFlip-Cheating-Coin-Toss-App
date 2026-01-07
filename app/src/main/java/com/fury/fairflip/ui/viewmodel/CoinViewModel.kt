@@ -29,18 +29,26 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
     }
 
     // --- STATE VARIABLES ---
+    // 1. Foreground Coin Offset
     private val _coinOffset = MutableStateFlow(Pair(0f, 0f))
     val coinOffset = _coinOffset.asStateFlow()
 
-    // Smoothing Variables (Current Position)
-    private var smoothedX = 0f
-    private var smoothedY = 0f
+    // 2. Background Stars Offset (NEW)
+    private val _bgOffset = MutableStateFlow(Pair(0f, 0f))
+    val bgOffset = _bgOffset.asStateFlow()
+
+    // Smoothing Variables (Current Positions)
+    private var coinSmoothedX = 0f
+    private var coinSmoothedY = 0f
+    private var bgSmoothedX = 0f // NEW
+    private var bgSmoothedY = 0f // NEW
 
     // CONFIGURATION
-    // 0.1f = Very Smooth/Slow (Heavy feel). 0.5f = Snappy.
-    private val SMOOTHING_FACTOR = 0.5f
-    // Reduced from 3f to 2f for less aggressive movement
-    private val SENSITIVITY_MULTIPLIER = 4.0f
+    private val SMOOTHING_FACTOR = 0.08f
+    // Coin moves medium speed
+    private val COIN_MULTIPLIER = 2.0f
+    // Background moves INVERSE direction (negative sign) and SLOWER (smaller number)
+    private val BG_MULTIPLIER = -0.8f
 
     private var isStealthModeOn = false
     private var currentCheatState = CheatState.RANDOM
@@ -61,24 +69,30 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
             val rawX = event.values[0]
             val rawY = event.values[1]
 
-            // --- 1. SMOOTHING ALGORITHM (Low Pass Filter) ---
-            // Target is where the sensor WANTS to be.
-            // We only move a small percentage (SMOOTHING_FACTOR) towards it per frame.
-
+            // --- A. CALCULATE COIN PHYSICS (Foreground) ---
             // Invert rawX so tilting left slides left
-            val targetX = -rawX * SENSITIVITY_MULTIPLIER
-            val targetY = rawY * SENSITIVITY_MULTIPLIER
+            val coinTargetX = -rawX * COIN_MULTIPLIER
+            val coinTargetY = rawY * COIN_MULTIPLIER
 
-            // Formula: New = Old + (Target - Old) * Alpha
-            smoothedX += (targetX - smoothedX) * SMOOTHING_FACTOR
-            smoothedY += (targetY - smoothedY) * SMOOTHING_FACTOR
+            // Apply Smoothing
+            coinSmoothedX += (coinTargetX - coinSmoothedX) * SMOOTHING_FACTOR
+            coinSmoothedY += (coinTargetY - coinSmoothedY) * SMOOTHING_FACTOR
+            _coinOffset.value = Pair(coinSmoothedX, coinSmoothedY)
 
-            // Emit the buttery smooth values
-            _coinOffset.value = Pair(smoothedX, smoothedY)
 
-            // --- 2. CHEAT DETECTION (Use Raw Data for accuracy) ---
-            // We use raw data for cheats because we want instant trigger response,
-            // even if the visual movement is slow/smooth.
+            // --- B. CALCULATE STAR PHYSICS (Background) ---
+            // Use rawX directly (inverse of coin) and smaller multiplier for depth
+            val bgTargetX = rawX * BG_MULTIPLIER
+            // Invert rawY for background y-axis to oppose coin
+            val bgTargetY = -rawY * BG_MULTIPLIER
+
+            // Apply Smoothing to stars too
+            bgSmoothedX += (bgTargetX - bgSmoothedX) * SMOOTHING_FACTOR
+            bgSmoothedY += (bgTargetY - bgSmoothedY) * SMOOTHING_FACTOR
+            _bgOffset.value = Pair(bgSmoothedX, bgSmoothedY)
+
+
+            // --- C. CHEAT DETECTION ---
             if (!isStealthModeOn) {
                 detectCheatTilt(rawX)
             }

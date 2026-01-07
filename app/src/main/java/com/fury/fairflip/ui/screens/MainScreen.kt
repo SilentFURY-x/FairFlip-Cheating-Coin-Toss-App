@@ -11,14 +11,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fury.fairflip.ui.components.FlipButton
 import com.fury.fairflip.ui.components.GameCoin
+import com.fury.fairflip.ui.components.StarField
 import com.fury.fairflip.ui.theme.MysticBlack
 import com.fury.fairflip.ui.theme.RoyalGold
 import com.fury.fairflip.ui.theme.SurfaceGrey
@@ -26,6 +29,7 @@ import com.fury.fairflip.ui.theme.TextGrey
 import com.fury.fairflip.ui.viewmodel.CoinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun MainScreen(
@@ -38,8 +42,11 @@ fun MainScreen(
     var isFlipping by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Observe Parallax Data
-    val parallaxOffset by viewModel.coinOffset.collectAsState()
+    // --- OBSERVE SENSOR DATA ---
+    // 1. Foreground Coin Data
+    val coinOffset by viewModel.coinOffset.collectAsState()
+    // 2. Background Star Data (NEW)
+    val bgOffset by viewModel.bgOffset.collectAsState()
 
     // --- ANIMATION ENGINE ---
     val currentRotation by animateFloatAsState(
@@ -62,6 +69,23 @@ fun MainScreen(
                 )
             )
     ) {
+        // --- LAYER 1: THE DEEP BACKGROUND STARS (NEW) ---
+        // Placed here so it sits behind the coin and UI.
+        StarField(
+            modifier = Modifier
+                // Apply the inverse, slower offset to the stars
+                .offset {
+                    IntOffset(
+                        x = bgOffset.first.dp.roundToPx(),
+                        y = bgOffset.second.dp.roundToPx()
+                    )
+                }
+                // Slight transparency so they don't overpower the coin glow
+                .graphicsLayer { alpha = 0.7f }
+        )
+
+
+        // --- LAYER 2: MAIN CONTENT ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -112,16 +136,15 @@ fun MainScreen(
             }
 
             // --- HERO COIN ---
-            // Note: We removed the .offset modifier from THIS Box.
             Box(
                 modifier = Modifier.weight(2f),
                 contentAlignment = Alignment.Center
             ) {
                 GameCoin(
                     rotationY = currentRotation,
-                    // Pass the offset logic INTO the component
-                    offsetX = parallaxOffset.first.dp,
-                    offsetY = parallaxOffset.second.dp
+                    // Pass foreground offset to the coin
+                    offsetX = coinOffset.first.dp,
+                    offsetY = coinOffset.second.dp
                 )
             }
 
