@@ -43,7 +43,7 @@ fun FairFlipTheme(
         SideEffect {
             val window = (view.context as Activity).window
 
-            // CHANGED: Set to Transparent so the gradient shows through
+            // Set to Transparent so the gradient shows through
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb() // Fix bottom bar too
 

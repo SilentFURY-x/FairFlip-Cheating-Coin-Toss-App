@@ -12,27 +12,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fury.fairflip.ui.components.FlipButton
 import com.fury.fairflip.ui.components.GameCoin
 import com.fury.fairflip.ui.theme.MysticBlack
 import com.fury.fairflip.ui.theme.RoyalGold
 import com.fury.fairflip.ui.theme.SurfaceGrey
 import com.fury.fairflip.ui.theme.TextGrey
+import com.fury.fairflip.ui.viewmodel.CoinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    // Inject ViewModel
+    viewModel: CoinViewModel = viewModel()
+) {
     // --- STATE ---
     var coinStateIsHeads by remember { mutableStateOf(true) }
     var targetRotation by remember { mutableFloatStateOf(0f) }
     var statusText by remember { mutableStateOf("TAP TO FLIP") }
     var isFlipping by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // Observe Parallax (Floating Effect)
+    val parallaxOffset by viewModel.coinOffset.collectAsState()
 
     // --- ANIMATION ENGINE ---
     val currentRotation by animateFloatAsState(
@@ -55,34 +66,33 @@ fun MainScreen() {
                 )
             )
     ) {
-                // We add .windowInsetsPadding() or .systemBarsPadding() here
-                // This ensures the Text and Buttons don't get covered by notches/bars
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .systemBarsPadding(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-            // --- HEADER ---
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // --- HEADER (Stealth Trigger) ---
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onLongPress = { statusText = "/// STEALTH MODE ///" }
+                            onLongPress = {
+                                // Call ViewModel Logic
+                                statusText = viewModel.toggleStealthMode()
+                            }
                         )
                     },
-                // CHANGED: Moved Alignment to TopCenter to push text up
                 contentAlignment = Alignment.TopCenter
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    // CHANGED: Added specific top padding to position it exactly where you want
                     modifier = Modifier.padding(top = 50.dp)
                 ) {
                     Text(
-                        text = "FAIR FLIP", // CHANGED: Name Updated
+                        text = "FAIR FLIP",
                         color = RoyalGold,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -99,9 +109,17 @@ fun MainScreen() {
                 }
             }
 
-            // --- HERO COIN ---
+            // --- HERO COIN (With Parallax!) ---
             Box(
-                modifier = Modifier.weight(2f),
+                modifier = Modifier
+                    .weight(2f)
+                    .offset {
+                        // Apply the floating offset here!
+                        IntOffset(
+                            x = parallaxOffset.first.dp.roundToPx(),
+                            y = parallaxOffset.second.dp.roundToPx()
+                        )
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 GameCoin(rotationY = currentRotation)
@@ -133,10 +151,11 @@ fun MainScreen() {
                         isFlipping = true
                         statusText = "FLIPPING..."
 
-                        // 1. DECIDE RESULT
-                        val nextResultIsHeads = !coinStateIsHeads
+                        // 1. ASK THE BRAIN FOR THE RESULT
+                        // The ViewModel checks the tilt and decides the winner
+                        val nextResultIsHeads = viewModel.getFlipResult(coinStateIsHeads)
 
-                        // 2. CALCULATE MATH
+                        // 2. CALCULATE MATH (Same as before)
                         val minSpins = 1800f
                         val current = targetRotation
                         val remainder = current % 360f
