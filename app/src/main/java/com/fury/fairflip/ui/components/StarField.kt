@@ -38,7 +38,7 @@ fun StarField(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.fillMaxSize()) {
         stars.forEach { star ->
             drawCircle(
-                color = RoyalGold.copy(alpha = star.alpha),
+                color = Color.White.copy(alpha = star.alpha),
                 radius = star.radiusDp.dp.toPx(),
                 center = Offset(
                     x = star.normX * size.width,

@@ -40,15 +40,15 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
     // Smoothing Variables (Current Positions)
     private var coinSmoothedX = 0f
     private var coinSmoothedY = 0f
-    private var bgSmoothedX = 0f // NEW
-    private var bgSmoothedY = 0f // NEW
+    private var bgSmoothedX = 0f
+    private var bgSmoothedY = 0f
 
     // CONFIGURATION
-    private val SMOOTHING_FACTOR = 0.08f
+    private val SMOOTHING_FACTOR = 0.4f
     // Coin moves medium speed
     private val COIN_MULTIPLIER = 2.0f
     // Background moves INVERSE direction (negative sign) and SLOWER (smaller number)
-    private val BG_MULTIPLIER = -0.8f
+    private val BG_MULTIPLIER = 2.0f
 
     private var isStealthModeOn = false
     private var currentCheatState = CheatState.RANDOM
