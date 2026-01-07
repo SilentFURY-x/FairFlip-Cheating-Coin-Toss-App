@@ -17,8 +17,11 @@ import com.fury.fairflip.ui.theme.FairFlipTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1. Activate Full Screen Mode
+        enableEdgeToEdge()
+
         setContent {
-            // Applies our forced Dark/Gold theme
             FairFlipTheme {
                 MainScreen()
             }

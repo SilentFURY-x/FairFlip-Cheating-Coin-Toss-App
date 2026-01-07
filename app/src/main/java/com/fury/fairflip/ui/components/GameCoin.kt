@@ -21,28 +21,28 @@ fun GameCoin(
     rotationY: Float,
     modifier: Modifier = Modifier
 ) {
-    // Container: 380dp (Enough space so the 190dp radius glow isn't clipped)
+    // ROOT CONTAINER: Reduced to 360dp (Tight fit for the new smaller glow)
     Box(
-        modifier = modifier.size(380.dp),
+        modifier = modifier.size(360.dp),
         contentAlignment = Alignment.Center
     ) {
-        // --- LAYER 1: THE SOFT BLENDED GLOW ---
-        // Alpha reduced to 0.5f for maximum softness against dark bg
+        // --- LAYER 1: THE TIGHT SOFT GLOW ---
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.5f }) {
-            val shadowCenter = center.copy(y = center.y + 15f)
-            // Define the exact radius where the glow hits total transparency.
-            // Coin radius is 150dp. 190dp gives a tight, soft fade.
-            val glowRadiusPx = 190.dp.toPx()
+            val shadowCenter = center.copy()
+
+            // TARGET RADIUS: 175dp
+            // Coin Radius is 150dp. This leaves exactly 25dp of visible glow.
+            val glowRadiusPx = 175.dp.toPx()
 
             val softBrush = Brush.radialGradient(
                 colors = listOf(RoyalGoldDark, Color.Transparent),
                 center = shadowCenter,
-                radius = glowRadiusPx // Gradient ends exactly here
+                radius = glowRadiusPx
             )
 
             drawCircle(
                 brush = softBrush,
-                radius = glowRadiusPx, // Drawing stops exactly where gradient ends. No hard edge.
+                radius = glowRadiusPx,
                 center = shadowCenter
             )
         }

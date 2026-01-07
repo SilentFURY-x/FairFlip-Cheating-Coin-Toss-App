@@ -55,10 +55,14 @@ fun MainScreen() {
                 )
             )
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+                // We add .windowInsetsPadding() or .systemBarsPadding() here
+                // This ensures the Text and Buttons don't get covered by notches/bars
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .systemBarsPadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
             // --- HEADER ---
             Box(
                 modifier = Modifier
