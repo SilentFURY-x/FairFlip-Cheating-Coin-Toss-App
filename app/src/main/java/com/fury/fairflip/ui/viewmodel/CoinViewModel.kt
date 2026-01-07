@@ -82,7 +82,7 @@ class CoinViewModel(application: Application) : AndroidViewModel(application), S
 
     private fun detectCheatTilt(xValue: Float) {
         // Threshold: How much you need to tilt to trigger the cheat
-        val tiltThreshold = 5.0f
+        val tiltThreshold = 3.0f
 
         val newState = when {
             xValue > tiltThreshold -> CheatState.HEADS // Tilted Left (usually positive X on some devices, verify!)
