@@ -124,7 +124,7 @@ graph TD
 
 1.  **Clone the repository:**
     ```bash
-        git clone https://github.com/SilentFURY-x/ShopAThing-App.git
+        git clone https://github.com/SilentFURY-x/FairFlip-Cheating-Coin-Toss-App.git
     ```
 2.  **Open in Android Studio:**
      * Ensure you are using the latest version (Ladybug or newer).
