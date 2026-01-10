@@ -106,8 +106,9 @@ graph TD
 <div align = "center">
   
 | The Stage | Stealth Mode | Parallax |
-| :--- | :--- | :--- |
-| <img src="docs/screen_main.jpg" width="280" alt="Main UI"/> <br> *Immersive Gradient & 3D Coin* | <img src="docs/screen_stealth.jpg" width="280" alt="Stealth Toast"/> <br> *Hidden Activation Toast* | <img src="docs/parallax.gif" width="280" alt="Parallax Animation"/> <br> *Parallax* |
+| :---: | :---: | :---: |
+| <img src="docs/screen_main.jpg" width="280" alt="Main UI"/> | <img src="docs/screen_stealth.jpg" width="280" alt="Stealth Toast"/> | <img src="docs/parallax.gif" width="280" alt="Parallax Animation"/> |
+| *Immersive Gradient & 3D Coin* | *Hidden Activation Toast* | *Parallax* |
 
 </div>
 
